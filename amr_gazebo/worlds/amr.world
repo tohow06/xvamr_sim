@@ -1,0 +1,25 @@
+<?xml version="1.0" ?>
+<sdf version="1.4">
+ 
+  <world name="default">
+
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+    <!-- Global light source -->
+    <include>
+      <uri>model://sun</uri>
+    </include>
+    <include>
+      <uri>model://black_line</uri>
+    </include>
+     <include>
+       <uri>model://u_rail_100</uri>
+    </include>
+
+
+
+
+
+  </world>
+</sdf>
