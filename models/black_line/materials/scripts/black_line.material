@@ -1,0 +1,15 @@
+material black_line/Image
+{
+  technique
+  {
+    pass
+    {
+
+
+      texture_unit
+      {
+        texture black_line.png
+      }
+    }
+  }
+}
