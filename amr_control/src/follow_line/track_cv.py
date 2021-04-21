@@ -4,17 +4,13 @@ import sys
 import math
 import os
 import logging
-import geom_util as geom
-import roi
-import track_conf as tconf
-
-    
+from . import geom_util as geom
+from . import roi
+from . import track_conf as tconf 
 
 #default gray threshold
 T = tconf.threshold
 Roi = roi.ROI()
-
-
 
 def balance_pic(image):
     global T
@@ -23,8 +19,8 @@ def balance_pic(image):
     for i in range(0, tconf.th_iterations):
 
         rc, gray = cv.threshold(image, T, 255, 0)
-        crop = Roi.crop_roi(gray)
-
+#        crop = Roi.crop_roi(gray)
+        crop = gray
         nwh = cv.countNonZero(crop)
         perc = int(100 * nwh / Roi.get_area())
         logging.debug(("balance attempt", i, T, perc))
@@ -47,7 +43,9 @@ def balance_pic(image):
             direction = -1
         else:
             ret = crop
-            break  
+            break
+
+    ret = 255-ret  
     return ret      
 
 
@@ -66,8 +64,9 @@ def adjust_brightness(img, level):
 def prepare_pic(image):
     global Roi
     global T
-    height, width = image.shape[:2]
-
+#    height, width = image.shape[:2]
+    height = 640
+    width = 480
     gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
     blurred = cv.GaussianBlur(gray, (9, 9), 0)
 
@@ -93,24 +92,30 @@ def find_main_countour(image):
     box = cv.boxPoints(rect)
     box = np.int0(box)
     box = geom.order_box(box)
+    
     return C, box
 
 
 
 def handle_pic(path, fout = None, show = False):
-    image = cv.imread(path)
+    image = path
     if image is None:
         logging.warning(("File not found", path))
         return None, None
     cropped, w, h = prepare_pic(image)
     if cropped is None:
+        print("cropped not found")
         return None, None
+    cv.imshow("cropped", cropped)
+    cv.waitKey(1)
     cont, box = find_main_countour(cropped)
     if cont is None:
+        print("cont not found")
         return None, None
     
     p1, p2 = geom.calc_box_vector(box)
     if p1 is None:
+        print("p1 not found")
         return None, None
 
     angle = geom.get_vert_angle(p1, p2, w, h)
@@ -133,7 +138,7 @@ def handle_pic(path, fout = None, show = False):
 
     if show:    
         cv.imshow("Image", image)
-        cv.waitKey(0)
+        cv.waitKey(1)
     return angle, shift
 
 def prepare_pic2(image):
@@ -150,20 +155,25 @@ def prepare_pic2(image):
 
 
 def handle_pic2(path, fout = None, show = False):
-    image = cv.imread(path)
-    if image is None:
-        logging.warning(("File not found", path))
-        return None, None
+    image = path
+#    image = cv.imread(path)
+#    if image is None:
+#        logging.warning(("File not found", path))
+#        return None, None
     height, width = image.shape[:2]
     cropped, w, h = prepare_pic2(image)
+
     if cropped is None:
+        print("if cropped is None:")
         return None, None
     cont, box = find_main_countour(cropped)
     if cont is None:
+        print("if cont is None:")
         return None, None
     
     p1, p2 = geom.calc_box_vector(box)
     if p1 is None:
+        print("if p1 is None:")
         return None, None
 
     angle = geom.get_vert_angle(p1, p2, w, h)
@@ -210,4 +220,4 @@ if __name__ == '__main__':
     """
     for f in os.listdir("test"):
         a, s = handle_pic("test/" + f, show=True)
-                                   
+                                

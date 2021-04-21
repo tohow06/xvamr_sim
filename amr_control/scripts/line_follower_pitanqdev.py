@@ -15,7 +15,7 @@ from std_msgs.msg import Int8
 from std_msgs.msg import Float32
 
 #### Ref:   https://github.com/tprlab/pitanq-dev/tree/master/selfdrive/follow_line
-import follow_line.track_cv as track
+from follow_line import track_cv as track
 
 ####
 
@@ -80,128 +80,15 @@ class LineFollower(object):
     
 
     def camera_callback(self, data):
-        
-        self.process_this_frame = self.droped_frames >= 1            
-
-        if self.process_this_frame:
-            #process_image_start_str = "process_image_start %s" % rospy.get_time()
-            #rospy.loginfo(process_image_start_str)
-            # We reset the counter
-            #print("Process Frame, Dropped frame to==" + str(self.droped_frames))
-            self.droped_frames = 0
-            self.count=self.count + 1
-
-            try:
-                # We select bgr8 because its the OpenCV encoding by default
-                cv_image = self.bridge_object.imgmsg_to_cv2(data, desired_encoding="bgr8")
-            except CvBridgeError as e:
-                print(e)
-                cv_image = None
-
-            if cv_image is not None:
-                small_frame = cv2.resize(cv_image, (0, 0), fx=1 ,fy=1)               
-                height, width, channels = small_frame.shape
-                rospy.logdebug("height=%s, width=%s" % (str(height), str(width)))
-                #rospy.loginfo("height=%s, width=%s" % (str(height), str(width)))
-                crop_img = small_frame
-                gray = cv2.cvtColor(crop_img, cv2.COLOR_BGR2GRAY)
-                mask = cv2.GaussianBlur(gray,(5,5),0)  
-                _, res= cv2.threshold(mask,100,255,cv2.THRESH_BINARY)  
-
-                h=119
-                x=0
-
-                # slice image and calculate center of mass
-                for y in range(0,480,120):
-                    if y==0:
-                     slice_img=res[y:y+h,x:x+width]
-                     mid=ndimage.measurements.center_of_mass(255-slice_img)
-                     sum_= 0.001*ndimage.sum(255-slice_img)
-                     if str(mid[0]) != 'nan':
-                        cv2.circle(slice_img, (int(mid[1]),int(mid[0])), 5, (255, 255, 255), -1)
-                        cv2.putText(slice_img,"(Cx,Cy)=(%s,%s)" %(str(int(mid[1])),str(int(mid[0]))) , (5, 110), cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 0), 1,cv2.LINE_AA)
-                        cv2.putText(slice_img,"sum=(%s)" %(str(sum_)) , (5, 90), cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 0), 1,cv2.LINE_AA)
-                     else:
-                         pass   
-                        
-
-                    elif y==120:
-                     slice_img2=res[y:y+h,x:x+width]
-                     mid2=ndimage.measurements.center_of_mass(255-slice_img2)
-                     sum2_= 0.001*ndimage.sum(255-slice_img2)
-                     if  str(mid2[0]) != 'nan':
-                        cv2.circle(slice_img2, (int(mid2[1]),int(mid2[0])), 5, (255, 255, 255), -1)
-                        cv2.putText(slice_img2,"(Cx,Cy)=(%s,%s)" %(str(int(mid2[1])),str(int(mid2[0]))) , (5, 110), cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 0), 1,cv2.LINE_AA)
-                        cv2.putText(slice_img2,"sum=(%s)" %(str(sum2_)) , (5, 90), cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 0), 1,cv2.LINE_AA)
-                     else:
-                         pass
-
-                    elif y==240:
-                     slice_img3=res[y:y+h,x:x+width]  
-                     mid3=ndimage.measurements.center_of_mass(255-slice_img3) 
-                     sum3_= 0.001*ndimage.sum(255-slice_img3)
-                     #rospy.loginfo("mid3[1]=%s, [0]=%s" % (str(mid3[1]), str(mid3[0])))
-                     if  str(mid3[0]) != 'nan':
-                        cv2.circle(slice_img3, (int(mid3[1]),int(mid3[0])), 5, (255, 255, 255), -1) 
-                        cv2.putText(slice_img3,"(Cx,Cy)=(%s,%s)" %(str(int(mid3[1])),str(int(mid3[0]))) , (5, 110), cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 0), 1,cv2.LINE_AA)
-                        cv2.putText(slice_img3,"sum=(%s)" %(str(sum3_)) , (5, 90), cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 0), 1,cv2.LINE_AA)
-                     else:
-                         pass
-
-                    elif y==360:
-                     slice_img4=res[y:y+h,x:x+width]   
-                     mid4=ndimage.measurements.center_of_mass(255-slice_img4)
-                     sum4_= 0.001*ndimage.sum(255-slice_img4)
-                     if  str(mid4[0]) != 'nan':
-                        cv2.circle(slice_img4, (int(mid4[1]),int(mid4[0])), 5, (255, 255, 255), -1) 
-                        cv2.putText(slice_img4,"(Cx,Cy)=(%s,%s)" %(str(int(mid4[1])),str(int(mid4[0]))) , (5, 110), cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 0), 1,cv2.LINE_AA)
-                        cv2.putText(slice_img4,"sum=(%s)" %(str(sum4_)) , (5, 90), cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 0), 1,cv2.LINE_AA)
-                     else:
-                         pass
-
-                
-                
-
-                multi_img =np.vstack((slice_img,slice_img2,slice_img3,slice_img4))            
-                cv2.imshow("multi_img",multi_img) 
-                cv2.imshow("raw_img",small_frame)     
-                cv2.waitKey(1)    
-                slope=abs(mid4[1] - mid[1])
-                deltaX= (mid3[1]-width/2.0)
-
-                rospy.loginfo("deltaX=%s" % (str(deltaX)))
-                
-
-
-                
-                self.error.append(deltaX)
-                if(self.count==1):
-                    self.time_amr.append(0)
-                    self.begin_time=time.time()
-                    self.stop=0
-    
-                    
-                elif(self.count != 1):
-                                   
-                    high_ = abs(mid2[1]-mid3[1])+35
-                    self.time_amr.append(time.time()-self.begin_time)
-                    if (int(abs(mid[1]-mid2[1])) >int(high_)) : 
-                         pass                   
-                      #self.stop=1 
-                 
-                    else:
-                         pass   
-                    
-                                            
-                self.move_robot(height, width, slope, deltaX)
+   
+        cv_image = self.bridge_object.imgmsg_to_cv2(data, desired_encoding="bgr8")
+        #cv2.imshow("cv_image", cv_image)
+        #cv2.waitKey(1)
+        angle, shift = track.handle_pic(cv_image, show = False)
+        #print("ttrack.handle_pic(cv_image) angle = ",angle,"shift = ",shift)
+        height = width = slope = deltaX = 0
+        self.move_robot(height, width, slope, deltaX)
                                               
-            else:
-                pass
-            
-        else:
-            self.droped_frames += 1
-            #print("Droped Frames==" + str(self.droped_frames))
-            
             
             
     def move_robot(self, image_dim_y, image_dim_x, slope, deltaX, linear_vel_base = 0.05,  angular_vel_base = 0.1, movement_time = 0.05):
