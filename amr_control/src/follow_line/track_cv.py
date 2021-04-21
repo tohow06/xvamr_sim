@@ -78,7 +78,7 @@ def prepare_pic(image):
 
 def find_main_countour(image):
 
-    im2, cnts, hierarchy = cv.findContours(image, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE)
+    cnts, hierarchy = cv.findContours(image, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE)
 
     C = None
     if cnts is not None and len(cnts) > 0:
