@@ -1,0 +1,6 @@
+<launch>
+
+    <node pkg="amr_control" name="line_follower" type="line_follower_pitanqdev.py"/>
+    <node pkg="rostopic" type="rostopic" name="follow_cmd" args="pub -r 5 /follow_cmd std_msgs/Int8 'data: 1'" output="screen"/>
+
+</launch>
